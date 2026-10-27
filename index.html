@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eee7f7">
+  <title>LOTO LAB — Scanner alimenti</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f5ef;
+      color: #37333c;
+      text-align: center;
+    }
+    main {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 22px;
+      border-radius: 22px;
+      box-shadow: 0 4px 20px #0000000c;
+    }
+    h1 { color: #75618e; }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 18px;
+      margin: 6px;
+      background: #75618e;
+      color: white;
+      font-size: 16px;
+    }
+    button:disabled { opacity: .5; }
+    video {
+      width: 100%;
+      max-height: 55vh;
+      background: #222;
+      border-radius: 14px;
+      margin-top: 12px;
+    }
+    #result {
+      font-size: 23px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    #status { line-height: 1.5; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>LOTO LAB</h1>
+  <p>Scanner barcode alimentare</p>
+  <p id="status">Premi Avvia scanner e consenti l'accesso alla fotocamera.</p>
+  <button id="start">Avvia scanner</button>
+  <button id="stop" disabled>Ferma</button>
+  <video id="video" playsinline muted></video>
+  <h2>Codice rilevato</h2>
+  <p id="result">—</p>
+  <button id="copy" disabled>Copia codice</button>
+  <button id="return" disabled>Torna a LOTO LAB</button>
+</main>
+
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
+<script>
+  const video = document.getElementById('video');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const start = document.getElementById('start');
+  const stop = document.getElementById('stop');
+  const copy = document.getElementById('copy');
+  const back = document.getElementById('return');
+
+  let reader = null;
+  let controls = null;
+  let barcode = '';
+
+  start.addEventListener('click', async () => {
+    if (!window.isSecureContext) {
+      status.textContent = 'Errore: la pagina deve essere aperta in HTTPS.';
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      status.textContent = 'Questo browser non rende disponibile la fotocamera.';
+      return;
+    }
+    if (!window.ZXingBrowser?.BrowserMultiFormatReader) {
+      status.textContent = 'Lettore barcode non caricato. Ricarica la pagina.';
+      return;
+    }
+
+    start.disabled = true;
+    status.textContent = 'Richiesta accesso alla fotocamera…';
+
+    try {
+      reader = new ZXingBrowser.BrowserMultiFormatReader();
+      controls = await reader.decodeFromVideoDevice(
+        undefined,
+        video,
+        (scanResult, error) => {
+          if (scanResult && !barcode) {
+            barcode = scanResult.getText();
+            result.textContent = barcode;
+            copy.disabled = false;
+            back.disabled = false;
+            status.textContent = 'Codice letto correttamente!';
+            controls?.stop();
+            stop.disabled = true;
+            start.disabled = false;
+          }
+        }
+      );
+      stop.disabled = false;
+      status.textContent = 'Inquadra il codice a barre del prodotto.';
+    } catch (error) {
+      status.textContent = 'Impossibile avviare la fotocamera: ' +
+        error.name + ' — ' + error.message;
+      start.disabled = false;
+    }
+  });
+
+  stop.addEventListener('click', () => {
+    controls?.stop();
+    controls = null;
+    stop.disabled = true;
+    start.disabled = false;
+    status.textContent = 'Scanner fermato.';
+  });
+
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(barcode);
+      status.textContent = 'Codice copiato. Puoi incollarlo nel diario alimentare.';
+    } catch {
+      status.textContent = 'Seleziona e copia manualmente il codice visualizzato.';
+    }
+  });
+
+  back.addEventListener('click', () => {
+    const appUrl = new URL(
+      'https://lotolab.my.canva.site/health-fitness-tracker'
+    );
+    appUrl.searchParams.set('barcode', barcode);
+    window.location.href = appUrl.href;
+  });
+</script>
+</body>
+</html>
