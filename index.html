@@ -137,14 +137,61 @@
       status.textContent = 'Seleziona e copia manualmente il codice visualizzato.';
     }
   });
+  let messageConfirmed = false;
+  let pendingBarcode = '';
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== 'https://lotolab.my.canva.site') return;
+    if (event.source !== window.opener) return;
+
+    const data = event.data;
+
+    if (
+      data?.type === 'LOTO_LAB_BARCODE_ACK' &&
+      String(data.barcode) === pendingBarcode &&
+      data.received === true
+    ) {
+      messageConfirmed = true;
+      status.textContent = 'Codice ricevuto dall’app LOTO LAB!';
+    }
+  });
 
   back.addEventListener('click', () => {
-    const appUrl = new URL(
-      'https://lotolab.my.canva.site/health-fitness-tracker'
-    );
-    appUrl.searchParams.set('barcode', barcode);
-    window.location.href = appUrl.href;
+    const code = String(barcode).trim();
+
+    if (!/^\d{8,14}$/.test(code)) {
+      status.textContent =
+        'Codice non valido: servono da 8 a 14 cifre.';
+      return;
+    }
+
+    pendingBarcode = code;
+    messageConfirmed = false;
+
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage(
+          {
+            type: 'LOTO_LAB_BARCODE',
+            barcode: code
+          },
+          'https://lotolab.my.canva.site'
+        );
+
+        status.textContent =
+          'Codice inviato. Attendo conferma dall’app LOTO LAB…';
+        return;
+      } catch (error) {
+        status.textContent =
+          'Invio non riuscito. Il codice resta visibile e copiabile.';
+        return;
+      }
+    }
+
+    status.textContent =
+      'App non raggiungibile. Il codice resta visibile: usa Copia codice.';
   });
+  
 </script>
 </body>
 </html>
