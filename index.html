@@ -157,13 +157,18 @@
   });
 
   back.addEventListener('click', () => {
-    const code = String(barcode).trim();
+  const code = String(barcode).trim();
 
-    if (!/^\d{8,14}$/.test(code)) {
-      status.textContent =
-        'Codice non valido: servono da 8 a 14 cifre.';
-      return;
-    }
+  if (!/^\d{8,14}$/.test(code)) {
+    status.textContent =
+      'Codice non valido: servono da 8 a 14 cifre.';
+    return;
+  }
+
+  window.location.assign(
+    "https://lotolab.my.canva.site/health-fitness-tracker"
+  );
+});
 
     pendingBarcode = code;
     messageConfirmed = false;
