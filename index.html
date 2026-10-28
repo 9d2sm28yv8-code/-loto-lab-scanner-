@@ -99,18 +99,31 @@
       controls = await reader.decodeFromVideoDevice(
         undefined,
         video,
+      
         (scanResult, error) => {
-          if (scanResult && !barcode) {
-            barcode = scanResult.getText();
-            result.textContent = barcode;
-            copy.disabled = false;
-            back.disabled = false;
-            status.textContent = 'Codice letto correttamente!';
-            controls?.stop();
-            stop.disabled = true;
-            start.disabled = false;
+          if (!scanResult || barcode) return;
+
+          const code = String(scanResult.getText()).trim();
+
+          if (!/^\d{8,14}$/.test(code)) {
+            status.textContent =
+              'Codice non valido: servono da 8 a 14 cifre.';
+            return;
           }
+
+          barcode = code;
+          result.textContent = code;
+          copy.disabled = false;
+          back.disabled = false;
+
+          controls?.stop();
+          stop.disabled = true;
+          start.disabled = false;
+
+          status.textContent =
+            'Codice letto correttamente! Premi "Torna a LOTO LAB".';
         }
+
       );
       stop.disabled = false;
       status.textContent = 'Inquadra il codice a barre del prodotto.';
