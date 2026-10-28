@@ -141,22 +141,32 @@
   });
 
   
-  back.addEventListener('click', () => {
-    const code = String(barcode).trim();
+back.addEventListener('click', async () => {
+  const code = String(barcode).trim();
 
-    if (!/^\d{8,14}$/.test(code)) {
-      status.textContent = 'Codice non valido: servono da 8 a 14 cifre.';
-      return;
-    }
+  if (!/^\d{8,14}$/.test(code)) {
+    status.textContent = 'Codice non valido: servono da 8 a 14 cifre.';
+    return;
+  }
 
-    const appUrl = new URL(
-      'https://lotolab.my.canva.site/health-fitness-tracker'
-    );
+  // Copia automaticamente il codice negli appunti
+  try {
+    await navigator.clipboard.writeText(code);
+    status.textContent = 'Codice copiato! Ritorno a LOTO LAB...';
+  } catch (error) {
+    status.textContent = 'Apertura LOTO LAB. Se necessario, usa Copia codice.';
+  }
 
-    appUrl.searchParams.set('barcode', code);
+  const appUrl = new URL(
+    'https://lotolab.my.canva.site/health-fitness-tracker'
+  );
 
-    window.location.assign(appUrl.toString());
-  });
+  appUrl.searchParams.set('barcode', code);
+
+  window.location.assign(appUrl.toString());
+});
+
+  
 </script>
 </body>
 </html>
