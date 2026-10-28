@@ -140,6 +140,7 @@
     }
   });
 
+  
   back.addEventListener('click', () => {
     const code = String(barcode).trim();
 
@@ -148,9 +149,13 @@
       return;
     }
 
-    window.location.assign(
+    const appUrl = new URL(
       'https://lotolab.my.canva.site/health-fitness-tracker'
     );
+
+    appUrl.searchParams.set('barcode', code);
+
+    window.location.assign(appUrl.toString());
   });
 </script>
 </body>
