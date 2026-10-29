@@ -1,185 +1,607 @@
-
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#eee7f7">
-  <title>LOTO LAB — Scanner alimenti</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 24px 16px;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f8f5ef;
-      color: #37333c;
-      text-align: center;
-    }
-    main {
-      max-width: 520px;
-      margin: auto;
-      background: white;
-      padding: 22px;
-      border-radius: 22px;
-      box-shadow: 0 4px 20px #0000000c;
-    }
-    h1 { color: #75618e; }
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 13px 18px;
-      margin: 6px;
-      background: #75618e;
-      color: white;
-      font-size: 16px;
-    }
-    button:disabled { opacity: .5; }
-    video {
-      width: 100%;
-      max-height: 55vh;
-      background: #222;
-      border-radius: 14px;
-      margin-top: 12px;
-    }
-    #result {
-      font-size: 23px;
-      font-weight: 700;
-      overflow-wrap: anywhere;
-    }
-    #status { line-height: 1.5; }
-  </style>
+<!doctype html>
+<html lang="it"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f8f6f3">
+<title>LOTO LAB — Cycle &amp; Nutrition</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#494747;--muted:#797473;--sage:#648470;--lilac:#e9dfee;--paper:#f8f6f3;--line:#e9e4e3}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',sans-serif;color:var(--ink);background:#f8f6f3}
+.app-shell{width:100%;min-height:100vh;padding-bottom:105px;background:radial-gradient(circle at 6% 2%,#eee3f0 0%,transparent 34%),radial-gradient(circle at 95% 27%,#e8efe9 0%,transparent 34%),#f8f6f3}
+.serif,.t1,.t2{font-family:'Fraunces',serif}.t1{font-size:24px;font-weight:400}.t2{font-size:19px;font-weight:400}
+.sub{color:var(--muted);font-size:16px}
+.surface{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 12px 32px #42584b0b}
+.field{width:100%;min-height:46px;border:1px solid #dedbd9;background:#fcfbfa;border-radius:12px;padding:10px 12px;color:var(--ink)}
+label.field-label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+button,select,input{font:inherit}button{cursor:pointer;border:0}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+.primary{background:#648470;color:#fff;border-radius:13px;padding:12px 17px;font-weight:700}
+.soft{background:#edf3ee;color:#42604c;border-radius:13px;padding:11px 15px;font-weight:700}
+.lilac{background:#eee5f1;color:#675770;border-radius:13px;padding:11px 15px;font-weight:700}
+.primary:hover{background:#4f705d}.soft:hover{background:#dfece1}
+button:disabled{opacity:.55;cursor:wait}
+.view[hidden]{display:none!important}
+.dock{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#ffffffed;backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:7px 8px calc(7px + env(safe-area-inset-bottom))}
+.dock nav{display:flex;max-width:850px;margin:auto}
+.nav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 1px;border-radius:14px;color:#777273;font-size:10px;font-weight:700;background:none}
+.nav-btn svg{width:19px;height:19px}.nav-btn.active{background:#eee5f1;color:#66536e}
+.chip{display:inline-block;background:#f3eff3;color:#705d72;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700}
+.tile{border-radius:20px;padding:20px;text-align:left;transition:transform .2s,box-shadow .2s;min-height:125px;color:var(--ink)}
+.tile:hover{transform:translateY(-3px);box-shadow:0 14px 25px #42584b14}
+.metric{background:#faf9f7;border-radius:15px;padding:13px}
+.bar{height:10px;border-radius:20px;background:#eeeae9;overflow:hidden}.bar>span{display:block;height:100%;background:#9baf9c;transition:width .3s}
+.row{border-bottom:1px solid #eeeae7;padding:12px 0}.row:last-child{border-bottom:0}
+.notice{background:#f5f0f5;border-left:3px solid #bb9fc2;border-radius:10px;padding:13px;color:#66576b}
+.mini{font-size:13px;color:var(--muted)}
+.view{animation:rise .32s ease both}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))}
+@media(max-width:380px){.nav-btn{font-size:9px}.nav-btn svg{width:17px}}
+</style>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
 </head>
 <body>
-<main>
-  <h1>LOTO LAB</h1>
-  <p>Scanner barcode alimentare</p>
-  <p id="status">Premi Avvia scanner e consenti l'accesso alla fotocamera.</p>
-  <button id="start">Avvia scanner</button>
-  <button id="stop" disabled>Ferma</button>
-  <video id="video" playsinline muted></video>
-  <h2>Codice rilevato</h2>
-  <p id="result">—</p>
-  <button id="copy" disabled>Copia codice</button>
- <button id="return" disabled>Torna al diario alimentare</button>
+<div class="app-shell">
+<header class="max-w-5xl mx-auto md:px-10 pt-7 md:pt-10 pb-6 flex flex-wrap items-start justify-between gap-3" style="padding-top:calc(28px + env(safe-area-inset-top))">
+ <div>
+  <p class="uppercase tracking-[.2em] font-bold mb-1" style="color:#799885;font-size:12px">IL TUO SPAZIO BENESSERE</p>
+  <h1 class="serif leading-tight" style="font-weight:600;font-size:32px;margin:0">LOTO LAB</h1>
+  <p class="mt-1 sub">Body • Mind • Balance</p>
+ </div>
+ <span class="chip">Prototipo dimostrativo</span>
+</header>
+<main class="max-w-5xl mx-auto md:px-10 space-y-6">
+<div id="notice" role="status" aria-live="polite" class="notice hidden"></div>
+
+<section id="home" class="view space-y-5">
+ <div class="surface p-6 md:p-9 relative overflow-hidden" style="background:linear-gradient(125deg,#f4eaf4,#fffaf5)">
+  <div class="absolute right-6 top-4 text-6xl opacity-30" aria-hidden="true">✿</div>
+  <h2 class="t1 relative">Benvenuta in LOTO LAB 🌸</h2>
+  <p class="mt-3 relative max-w-lg" style="color:#665d65">Il tuo benessere è un percorso, non una destinazione.</p>
+ </div>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+  <button type="button" data-go="cycle" class="tile surface"><span class="block text-2xl mb-3" aria-hidden="true">☾</span>Ciclo e benessere</button>
+  <button type="button" data-go="nutrition" class="tile surface"><span class="block text-2xl mb-3" aria-hidden="true">✿</span>Diario alimentare</button>
+  <button type="button" data-go="needs" class="tile surface"><span class="block text-2xl mb-3" aria-hidden="true">◌</span>Il mio fabbisogno</button>
+  <button type="button" data-go="workout" class="tile surface"><span class="block text-2xl mb-3" aria-hidden="true">⌁</span>Allenamento</button>
+ </div>
+ <div class="grid md:grid-cols-3 gap-3">
+  <div class="surface p-5"><h3 class="t2">Il tuo ciclo</h3><p id="home-phase" class="mt-2 mini"></p></div>
+  <div class="surface p-5"><h3 class="t2">Alimentazione oggi</h3><p id="home-food-summary" class="mt-2 mini"></p></div>
+  <div class="surface p-5"><h3 class="t2">Movimento oggi</h3><p id="home-activity" class="mt-2 mini"></p></div>
+ </div>
+ <div class="surface p-5"><h3 class="t2">Un pensiero per oggi</h3><p class="mt-2 sub">Una pausa per ascoltare il corpo può essere utile quanto una lista di cose da fare.</p></div>
+ <button data-go="premium" type="button" class="primary w-full sm:w-auto">Scopri i percorsi personalizzati</button>
+</section>
+
+<section id="cycle" class="view space-y-5" hidden>
+ <div><h2 class="t1">Il ciclo, con gentilezza</h2><p class="mt-1 sub">Registra le tue date e osserva il tuo ritmo senza aspettative rigide.</p></div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <div class="surface p-5 md:p-7">
+   <h3 class="t2 mb-4">Le tue date</h3>
+   <form id="cycle-form" class="space-y-3">
+    <div><label for="period-date" class="field-label">Primo giorno delle mestruazioni</label><input id="period-date" class="field" type="date" required></div>
+    <div><label for="cycle-length" class="field-label">Durata media del ciclo (giorni)</label><input id="cycle-length" class="field" type="number" min="15" max="60" value="28" required></div>
+    <div><label for="period-length" class="field-label">Durata delle mestruazioni (giorni)</label><input id="period-length" class="field" type="number" min="1" max="12" value="5" required></div>
+    <button class="primary w-full" type="submit">Salva o aggiorna la data</button>
+   </form>
+   <p class="mini mt-3">Puoi correggere la data nel modulo e salvarla di nuovo. I dati restano su questo dispositivo.</p>
+  </div>
+  <div class="surface p-5 md:p-7">
+   <h3 class="t2 mb-4">Il tuo ritmo indicativo</h3>
+   <div id="cycle-result" aria-live="polite" class="space-y-3 mini">Inserisci una data per visualizzare le stime.</div>
+   <div class="grid grid-cols-2 gap-2 mt-5 text-xs">
+    <span class="chip" style="background:#f6dfe1">● Mestruale</span><span class="chip" style="background:#e7eee2">● Follicolare</span><span class="chip" style="background:#eee0ef">● Ovulatoria</span><span class="chip" style="background:#f4ebd9">● Luteale</span>
+   </div>
+   <p class="mini mt-5">Ovulazione e mestruazioni future sono stime, non certezze. Questi dati non costituiscono un metodo contraccettivo né un consiglio medico.</p>
+  </div>
+ </div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <div class="surface p-5">
+   <h3 class="t2 mb-3">Come ti senti oggi?</h3>
+   <form id="checkin-form" class="space-y-3">
+    <div><label for="symptoms" class="field-label">Sintomi</label><input id="symptoms" class="field" placeholder="Es. crampi, tensione" maxlength="100"></div>
+    <div class="grid grid-cols-2 gap-3">
+     <div><label for="energy" class="field-label">Energia</label><select id="energy" class="field"><option>Bassa</option><option selected>Media</option><option>Alta</option></select></div>
+     <div><label for="mood" class="field-label">Umore</label><select id="mood" class="field"><option>Delicato</option><option selected>Sereno</option><option>Vivace</option></select></div>
+     <div><label for="sleep" class="field-label">Qualità del sonno</label><select id="sleep" class="field"><option>Da migliorare</option><option selected>Discreta</option><option>Buona</option></select></div>
+     <div><label for="wellbeing" class="field-label">Benessere generale</label><select id="wellbeing" class="field"><option>Basso</option><option selected>Medio</option><option>Alto</option></select></div>
+    </div>
+    <button class="soft w-full" type="submit">Registra il check-in</button>
+   </form>
+   <p id="checkin-result" class="mini mt-3" aria-live="polite"></p>
+  </div>
+  <div class="surface p-5"><h3 class="t2 mb-3">Storico delle date</h3><div id="cycle-history" class="mini">Nessuna data registrata.</div></div>
+ </div>
+ <div class="surface p-5 md:p-7">
+  <h3 class="t2">Ascolta il tuo corpo</h3>
+  <p id="phase-description" class="mini mt-2">I suggerimenti si adattano alla fase stimata quando inserisci una data.</p>
+  <div class="grid md:grid-cols-3 gap-3 mt-4">
+   <div class="metric"><h4 class="font-bold">Alimentazione</h4><p id="advice-food" class="mini mt-2"></p></div>
+   <div class="metric"><h4 class="font-bold">Allenamento</h4><p id="advice-move" class="mini mt-2"></p></div>
+   <div class="metric"><h4 class="font-bold">Benessere</h4><p id="advice-care" class="mini mt-2"></p></div>
+  </div>
+  <p class="mini mt-4">Ogni donna può sperimentare sintomi ed energie differenti. Queste idee sono flessibili, non regole.</p>
+ </div>
+</section>
+
+<section id="nutrition" class="view space-y-5" hidden>
+ <div><h2 class="t1">Diario alimentare</h2><p class="mt-1 sub">Uno spazio per osservare, non per giudicare.</p></div>
+ <div class="surface p-5 md:p-7">
+  <div class="flex flex-wrap justify-between gap-3 items-center">
+   <div><label for="food-date" class="field-label">Giorno del diario</label><input id="food-date" class="field" type="date"></div>
+   <button data-go="needs" type="button" class="lilac">Il mio fabbisogno →</button>
+  </div>
+  <div id="nutrition-totals" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-5"></div>
+  <div class="bar mt-5" role="progressbar" aria-label="Calorie rispetto all’obiettivo orientativo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="calorie-bar"><span id="calorie-fill"></span></div>
+  <p id="calorie-caption" class="mini mt-2"></p>
+ </div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <div class="surface p-5 md:p-7">
+   <h3 class="t2 mb-3">Aggiungi un alimento</h3>
+   <div class="notice mb-4"><strong>Fonti:</strong> i dati manuali restano distinti da quelli di Open Food Facts; ogni voce riporta la sua origine. Verifica sempre i valori sull’etichetta.</div>
+   <div class="grid sm:grid-cols-2 gap-3 mb-4">
+    <div>
+     <label for="food-search" class="field-label">Cerca per nome o codice a barre</label>
+     <div class="flex gap-2 flex-wrap"><input id="food-search" class="field flex-1 min-w-[12rem]" type="search" placeholder="Es. yogurt greco o 8000430030464"><button id="food-search-button" type="button" class="lilac">Cerca</button></div>
+    </div>
+    <div class="flex items-end gap-2">
+     <button id="barcode-button" type="button" class="lilac flex-1">Scansiona codice a barre</button>
+    </div>
+   </div>
+   <p id="food-integration-status" class="mini mb-4">Inserisci quantità e valori per 100 g/100 ml. Origine: dati manuali.</p>
+   <div id="food-search-results" class="space-y-2 mb-4" aria-live="polite"></div>
+   <form id="food-form" class="space-y-3">
+    <div><label for="meal" class="field-label">Momento della giornata</label><select id="meal" class="field"><option>Colazione</option><option>Spuntino mattutino</option><option>Pranzo</option><option>Spuntino pomeridiano</option><option>Cena</option><option>Altri alimenti o bevande</option></select></div>
+    <div><label for="food-name" class="field-label">Alimento o bevanda</label><input id="food-name" class="field" maxlength="80" required></div>
+    <div class="grid grid-cols-2 gap-3">
+     <div><label for="quantity" class="field-label">Quantità</label><input id="quantity" class="field" type="number" min="0.1" step="any" required></div>
+     <div><label for="unit" class="field-label">Unità</label><select id="unit" class="field"><option>g</option><option>ml</option></select></div>
+     <div><label for="kcal100" class="field-label">Calorie per 100 <span id="reference-unit-kcal">g</span></label><input id="kcal100" class="field" type="number" min="0" step="any" required></div>
+     <div><label for="protein100" class="field-label">Proteine per 100 <span class="reference-unit">g</span> (g)</label><input id="protein100" class="field" type="number" min="0" step="any"></div>
+     <div><label for="carbs100" class="field-label">Carboidrati per 100 <span class="reference-unit">g</span> (g)</label><input id="carbs100" class="field" type="number" min="0" step="any"></div>
+     <div><label for="fat100" class="field-label">Grassi per 100 <span class="reference-unit">g</span> (g)</label><input id="fat100" class="field" type="number" min="0" step="any"></div>
+     <div><label for="fiber100" class="field-label">Fibre per 100 <span class="reference-unit">g</span> (g)</label><input id="fiber100" class="field" type="number" min="0" step="any"></div>
+    </div>
+    <button id="food-submit" class="primary w-full" type="submit">Salva la voce</button>
+    <button id="food-cancel" class="soft w-full hidden" type="button">Annulla modifica</button>
+   </form>
+   <p class="mini mt-4">Inserisci soltanto valori che conosci e verifica le etichette.</p>
+  </div>
+  <div class="surface p-5 md:p-7">
+   <h3 class="t2 mb-3">Voci del giorno</h3>
+   <div id="food-list" aria-live="polite"></div>
+   <h3 class="t2 mt-6 mb-2">Ultimi sette giorni</h3>
+   <div id="week-summary" class="mini"></div>
+  </div>
+ </div>
+ <button id="save-report" type="button" class="soft w-full sm:w-auto">Salva report giornaliero</button>
+ <p id="report-status" class="mini" role="status" aria-live="polite"></p>
+ <div class="surface p-5"><h3 class="t2">Report salvati</h3><div id="reports-list" class="mt-3 mini"></div></div>
+</section>
+
+<section id="needs" class="view space-y-5" hidden>
+ <button data-go="nutrition" type="button" class="soft">← Alimentazione</button>
+ <div><h2 class="t1">Il mio fabbisogno</h2><p class="mt-1 sub">Una stima per orientarti, non una prescrizione.</p></div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <form id="needs-form" class="surface p-5 md:p-7 grid grid-cols-2 gap-3">
+   <div><label for="age" class="field-label">Età</label><input id="age" class="field" type="number" min="18" max="100" required></div>
+   <div><label for="height" class="field-label">Altezza (cm)</label><input id="height" class="field" type="number" min="100" max="230" required></div>
+   <div><label for="weight" class="field-label">Peso (kg)</label><input id="weight" class="field" type="number" min="30" max="350" step="any" required></div>
+   <div><label for="frequency" class="field-label">Allenamenti/settimana</label><input id="frequency" class="field" type="number" min="0" max="14" value="2" required></div>
+   <div class="col-span-2"><label for="activity" class="field-label">Attività quotidiana</label><select id="activity" class="field"><option value="1.2">Sedentaria</option><option value="1.375">Leggera</option><option value="1.55">Moderata</option><option value="1.725">Elevata</option></select></div>
+   <div class="col-span-2"><label for="objective" class="field-label">Obiettivo</label><select id="objective" class="field"><option value="maintain">Mantenimento</option><option value="loss">Dimagrimento graduale</option><option value="recomp">Ricomposizione corporea</option></select></div>
+   <button type="submit" class="primary col-span-2">Calcola il mio fabbisogno</button>
+  </form>
+  <div class="surface p-5 md:p-7">
+   <h3 class="t2">La tua stima</h3>
+   <div id="needs-result" class="mini mt-4" aria-live="polite">Compila il modulo per vedere una stima orientativa.</div>
+   <p class="mini mt-5">La formula Mifflin–St Jeor e i fattori di attività producono stime. Non sono indicazioni mediche né un piano alimentare personalizzato. Evita restrizioni eccessive; confrontati con una professionista qualificata per esigenze individuali.</p>
+  </div>
+ </div>
+</section>
+
+<section id="workout" class="view space-y-5" hidden>
+ <div><h2 class="t1">Allenamento</h2><p class="mt-1 sub">Scegli il movimento che incontra la tua energia di oggi. Schede dimostrative.</p></div>
+ <div class="surface p-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+  <div><label for="filter-level" class="field-label">Livello</label><select id="filter-level" class="field"><option value="">Tutti</option><option>Base</option><option>Intermedio</option></select></div>
+  <div><label for="filter-duration" class="field-label">Durata massima</label><select id="filter-duration" class="field"><option value="">Tutte</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option></select></div>
+  <div><label for="filter-equipment" class="field-label">Attrezzatura</label><select id="filter-equipment" class="field"><option value="">Tutta</option><option value="Nessuna">Nessuna</option><option value="Manubri">Manubri</option><option value="Tappetino">Tappetino</option></select></div>
+  <div><label for="filter-place" class="field-label">Luogo</label><select id="filter-place" class="field"><option value="">Ovunque</option><option>Casa</option><option>Palestra</option></select></div>
+ </div>
+ <div id="workout-list" class="grid md:grid-cols-2 gap-4"></div>
+ <div class="surface p-5"><h3 class="t2">Sessioni completate</h3><div id="session-list" class="mini mt-2"></div></div>
+ <p class="mini">Adatta ogni allenamento alle tue condizioni, capacità e indicazioni sanitarie ricevute.</p>
+</section>
+
+<section id="profile" class="view space-y-5" hidden>
+ <div><h2 class="t1">Il tuo spazio</h2><p class="mt-1 sub">Preferenze, progressi e controllo sui tuoi dati.</p></div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <div class="surface p-5">
+   <h3 class="t2 mb-3">Le tue preferenze</h3>
+   <form id="profile-form" class="space-y-3">
+    <div><label for="display-name" class="field-label">Nome da visualizzare</label><input id="display-name" class="field" maxlength="50"></div>
+    <div><label for="preference" class="field-label">Preferenza di movimento</label><select id="preference" class="field"><option>Movimento gentile</option><option>Forza</option><option>Varietà</option></select></div>
+    <button class="soft" type="submit">Aggiorna preferenze</button>
+   </form>
+  </div>
+  <div class="surface p-5"><h3 class="t2">Il tuo percorso in breve</h3><div id="profile-progress" class="mini mt-3"></div></div>
+ </div>
+ <div class="surface p-5 space-y-3">
+  <h3 class="t2">Privacy e consenso</h3>
+  <p class="mini">Ciclo, alimentazione e benessere possono essere dati sensibili. In questa versione i dati restano soltanto nel browser di questo dispositivo e non vengono inviati ad altri, tranne le ricerche su Open Food Facts (codice o nome del prodotto). Cancellando i dati del browser li perdi.</p>
+  <div class="flex flex-wrap gap-2"><button id="export-session" type="button" class="soft">Esporta i miei dati</button><button id="clear-session" type="button" class="lilac">Cancella tutti i miei dati</button></div>
+ </div>
+ <div class="flex flex-wrap gap-2"><button data-go="premium" class="primary" type="button">Percorsi personalizzati</button><button data-go="admin" class="soft" type="button">Area amministratrice</button></div>
+</section>
+
+<section id="premium" class="view space-y-5" hidden>
+ <button data-go="profile" class="soft" type="button">← Profilo</button>
+ <div class="surface p-6 md:p-10" style="background:linear-gradient(130deg,#eee3f0,#fffaf4)">
+  <span class="chip">LOTO LAB</span>
+  <h2 class="t1 mt-4">Il tuo percorso personalizzato</h2>
+  <p class="mt-3" style="color:#665d65">Ogni donna è diversa. Il tuo percorso dovrebbe esserlo altrettanto.</p>
+ </div>
+ <div class="grid md:grid-cols-2 gap-5">
+  <div class="surface p-6">
+   <h3 class="t2">Formula LOTO LAB — Alimentazione + Training</h3>
+   <p class="mt-3 sub">Un percorso costruito intorno alle tue esigenze, ai tuoi obiettivi e al tuo stile di vita. Non un programma standard, ma un progetto personalizzato da sviluppare insieme.</p>
+   <div class="mt-4 space-y-3">
+    <div><label for="pn" class="field-label">Il tuo nome</label><input id="pn" class="field" maxlength="60"></div>
+    <div><label for="pm" class="field-label">Raccontami di te</label><textarea id="pm" class="field" rows="3" placeholder="Obiettivi, giorni disponibili, eventuali infortuni…"></textarea></div>
+   </div>
+   <button id="whatsapp-button" type="button" class="primary mt-4 w-full">Scrivimi su WhatsApp</button>
+   <button id="email-button" type="button" class="soft mt-2 w-full">Scrivimi via email</button>
+  </div>
+  <div class="surface p-6">
+   <h3 class="t2">Cosa comprende il percorso</h3>
+   <p class="mt-3 sub">Movimento, nutrizione, ciclo e supporto: scopri come possono dialogare nel rispetto delle tue esigenze.</p>
+   <button data-go="services" class="soft mt-5" type="button">Scopri i percorsi LOTO LAB</button>
+  </div>
+ </div>
+</section>
+
+<section id="services" class="view space-y-5" hidden>
+ <button data-go="premium" class="soft" type="button">← Percorso personalizzato</button>
+ <h2 class="t1">I percorsi LOTO LAB</h2>
+ <div class="surface p-6 space-y-4">
+  <p>Allenamento personalizzato: un programma da costruire e adattare a obiettivi, capacità, tempo e attrezzatura.</p>
+  <p>Indicazioni nutrizionali personalizzate nei limiti delle competenze della professionista, con attenzione a sostenibilità e relazione con il cibo.</p>
+  <p>Educazione al ciclo e al benessere femminile per osservare i propri segnali senza trasformarli in regole rigide.</p>
+  <p>Monitoraggio dei progressi, adattamento nel tempo e supporto con la professionista. Nessun pagamento in app.</p>
+ </div>
+</section>
+
+<section id="admin" class="view space-y-5" hidden>
+ <button data-go="profile" class="soft" type="button">← Profilo</button>
+ <h2 class="t1">Pannello amministratrice</h2>
+ <div class="surface p-6"><span class="chip">Da collegare</span>
+  <p class="mt-4">Questa pagina descrive la futura area riservata. Senza autenticazione e autorizzazioni reali non sarebbe sicuro simulare un pannello operativo.</p>
+  <p class="mini mt-4">Da collegare: accesso protetto, gestione senza codice dei consigli per fase, schede, descrizioni e immagini degli esercizi, contenuti educativi e servizi premium.</p>
+ </div>
+</section>
 </main>
+</div>
 
-<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
+<div id="scanner-modal" class="fixed inset-0 z-50 hidden p-5" style="background:#494747cc" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
+ <div class="surface mx-auto mt-8 max-w-lg p-5">
+  <div class="flex items-start justify-between gap-3">
+   <div><h2 id="scanner-title" class="t1">Scanner codice a barre</h2></div>
+   <button id="scanner-close" type="button" class="soft">Chiudi</button>
+  </div>
+  <video id="scanner-video" class="mt-5 aspect-video w-full rounded-2xl object-cover" style="background:#242424" autoplay muted playsinline></video>
+  <p id="scanner-message" class="notice mt-4" aria-live="polite">Scanner non attivo.</p>
+ </div>
+</div>
+
+<footer class="dock"><nav aria-label="Navigazione principale">
+ <button data-go="home" class="nav-btn active" type="button"><i data-lucide="house"></i><span>Home</span></button>
+ <button data-go="cycle" class="nav-btn" type="button"><i data-lucide="moon"></i><span>Ciclo</span></button>
+ <button data-go="nutrition" class="nav-btn" type="button"><i data-lucide="leaf"></i><span>Alimentazione</span></button>
+ <button data-go="workout" class="nav-btn" type="button"><i data-lucide="heart-pulse"></i><span>Allenamento</span></button>
+ <button data-go="profile" class="nav-btn" type="button"><i data-lucide="user-round"></i><span>Profilo</span></button>
+</nav></footer>
+
 <script>
-  const video = document.getElementById('video');
-  const status = document.getElementById('status');
-  const result = document.getElementById('result');
-  const start = document.getElementById('start');
-  const stop = document.getElementById('stop');
-  const copy = document.getElementById('copy');
-  const back = document.getElementById('return');
+const $=id=>document.getElementById(id);
+const KEY="lotolab_v2";
+const CONTATTO={email:"info.lotolab@gmail.com",whatsapp:"393791467475"};
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const formatDate=s=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(s+'T12:00:00Z'));
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const number=n=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:1}).format(n);
+const state={foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],editing:null};
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)Object.assign(state,r,{editing:null})}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+const nutrientKeys=['kcal','protein','carbs','fat','fiber'];
+const workouts=[
+ {name:'Total body gentile',goal:'Forza equilibrata',level:'Base',duration:30,place:'Casa',equipment:'Nessuna',exercises:['Squat a sedia · 2×10 · recupero 60 s · scendi con controllo','Piegamenti al muro · 2×10 · recupero 60 s · spalle rilassate','Ponte glutei · 2×12 · recupero 60 s · espira salendo']},
+ {name:'Parte superiore',goal:'Forza di braccia e schiena',level:'Intermedio',duration:35,place:'Palestra',equipment:'Manubri',exercises:['Rematore · 3×10 · recupero 75 s · schiena neutra','Spinte sopra la testa · 3×8 · recupero 75 s · movimento controllato']},
+ {name:'Parte inferiore',goal:'Forza delle gambe',level:'Intermedio',duration:40,place:'Palestra',equipment:'Manubri',exercises:['Squat · 3×10 · recupero 90 s · ginocchia in linea','Affondi assistiti · 3×8 per lato · recupero 75 s · passo stabile']},
+ {name:'Mobilità e stretching',goal:'Sciogliere le tensioni',level:'Base',duration:20,place:'Casa',equipment:'Tappetino',exercises:['Mobilità della colonna · 2×8 · pausa libera · senza forzare','Stretching anche · 2×30 s per lato · respira con calma']},
+ {name:'Yoga e recupero attivo',goal:'Ritrovare il proprio ritmo',level:'Base',duration:25,place:'Casa',equipment:'Tappetino',exercises:['Gatto-mucca · 2×8 · pausa libera · segui il respiro','Posizione del bambino · 2×45 s · pausa libera · trova comodità']}
+];
+const advice={
+ Mestruale:['Pasti regolari con fonti di ferro, proteine, carboidrati e fibre; porta con te acqua e osserva la fame.','Se ti va, camminata, mobilità o yoga dolce. Anche il recupero è una scelta valida.','Concediti riposo, calore confortevole e qualche minuto di respirazione lenta.','Durante la fase mestruale alcune persone desiderano più riposo; altre mantengono la consueta energia.'],
+ Follicolare:['Organizza pasti equilibrati con proteine, carboidrati, grassi e verdure; idratati secondo la sete.','Se l’energia lo permette, prova pesi progressivi o una sessione total body.','Osserva come cambia l’energia e scegli piccoli obiettivi sostenibili.','Nella fase follicolare l’energia può aumentare, ma l’esperienza è personale.'],
+ Ovulatoria:['Mantieni pasti completi e flessibili; includi fibre e liquidi senza imporre regole rigide.','Puoi scegliere forza o movimento dinamico, adattando carico e recupero.','Ritaglia pause e ascolta eventuali segnali di affaticamento.','Intorno all’ovulazione alcune persone percepiscono energia diversa; la data resta una stima.'],
+ Luteale:['L’appetito può variare: pianifica spuntini soddisfacenti e pasti con proteine, carboidrati, grassi e fibre.','Adatta pesi, mobilità o yoga all’energia del giorno e prevedi recupero.','Prova respirazione, rilassamento e una routine serale riposante.','Nella fase luteale fame, sonno ed energia possono cambiare in modi differenti.']
+};
+function notify(m){$('notice').textContent=m;$('notice').classList.remove('hidden')}
+function go(id){
+ document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==id);
+ const parent=({needs:'nutrition',premium:'profile',services:'profile',admin:'profile'})[id]||id;
+ document.querySelectorAll('.nav-btn').forEach(b=>{const a=b.dataset.go===parent;b.classList.toggle('active',a);if(a)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ $('notice').classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+$('food-date').value=today();
 
-  let reader = null;
-  let controls = null;
-  let barcode = '';
-
-  start.addEventListener('click', async () => {
-    if (!window.isSecureContext) {
-      status.textContent = 'Errore: la pagina deve essere aperta in HTTPS.';
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      status.textContent = 'Questo browser non rende disponibile la fotocamera.';
-      return;
-    }
-    if (!window.ZXingBrowser?.BrowserMultiFormatReader) {
-      status.textContent = 'Lettore barcode non caricato. Ricarica la pagina.';
-      return;
-    }
-
-    start.disabled = true;
-    status.textContent = 'Richiesta accesso alla fotocamera…';
-
-    try {
-      reader = new ZXingBrowser.BrowserMultiFormatReader();
-      controls = await reader.decodeFromVideoDevice(
-        undefined,
-        video,
-      
-        (scanResult, error) => {
-          if (!scanResult || barcode) return;
-
-          const code = String(scanResult.getText()).trim();
-
-          if (!/^\d{8,14}$/.test(code)) {
-            status.textContent =
-              'Codice non valido: servono da 8 a 14 cifre.';
-            return;
-          }
-
-          barcode = code;
-          result.textContent = code;
-          copy.disabled = false;
-          back.disabled = false;
-
-          controls?.stop();
-          stop.disabled = true;
-          start.disabled = false;
-
-          status.textContent =
-            'Codice letto correttamente! Premi "Torna a LOTO LAB".';
-        }
-
-      );
-      stop.disabled = false;
-      status.textContent = 'Inquadra il codice a barre del prodotto.';
-    } catch (error) {
-      status.textContent = 'Impossibile avviare la fotocamera: ' +
-        error.name + ' — ' + error.message;
-      start.disabled = false;
-    }
-  });
-
-  stop.addEventListener('click', () => {
-    controls?.stop();
-    controls = null;
-    stop.disabled = true;
-    start.disabled = false;
-    status.textContent = 'Scanner fermato.';
-  });
-
-  copy.addEventListener('click', async () => {
-    if (!barcode) return;
-
-    try {
-      await navigator.clipboard.writeText(barcode);
-      status.textContent = 'Codice copiato. Torna a LOTO LAB e premi "Incolla codice a barre".';
-    } catch {
-      status.textContent = 'Copia non disponibile. Seleziona e copia manualmente il codice visualizzato.';
-    }
-  });
-
-  
-back.addEventListener('click', async () => {
-  const code = String(barcode).trim();
-
-  if (!/^\d{8,14}$/.test(code)) {
-    status.textContent = 'Codice non valido: servono da 8 a 14 cifre.';
-    return;
-  }
-
-  // Copia automaticamente il codice negli appunti
-  try {
-    await navigator.clipboard.writeText(code);
-    status.textContent = 'Codice copiato! Ritorno a LOTO LAB...';
-  } catch (error) {
-    status.textContent = 'Apertura LOTO LAB. Se necessario, usa Copia codice.';
-  }
-
-  const appUrl = new URL(
-    'https://lotolab.my.canva.site/health-fitness-tracker'
-  );
-
-  appUrl.searchParams.set('barcode', code);
-
-  window.location.assign(appUrl.toString());
+/* CICLO */
+function phase(){
+ const e=state.cycle[0];if(!e)return null;
+ const day=Math.floor((new Date(today()+'T12:00:00Z')-new Date(e.date+'T12:00:00Z'))/86400000);
+ const pos=((day%e.length)+e.length)%e.length;
+ if(pos<e.period)return 'Mestruale';
+ if(pos>=e.length-15&&pos<=e.length-13)return 'Ovulatoria';
+ if(pos<e.length-15)return 'Follicolare';
+ return 'Luteale';
+}
+function renderCycle(){
+ const e=state.cycle[0],p=phase(),h=$('cycle-history');h.replaceChildren();
+ if(!state.cycle.length)h.textContent='Nessuna data registrata.';
+ state.cycle.forEach((item,i)=>{
+  const row=document.createElement('div');row.className='row flex flex-wrap justify-between gap-2';
+  const t=document.createElement('span');t.textContent=`${formatDate(item.date)} · ${item.length} giorni`;
+  const a=document.createElement('span');
+  const ed=document.createElement('button');ed.className='underline mr-3';ed.style.color='#42604c';ed.style.background='none';ed.type='button';ed.textContent='Modifica';
+  ed.onclick=()=>{$('period-date').value=item.date;$('cycle-length').value=item.length;$('period-length').value=item.period;state.cycle.splice(i,1);renderCycle();renderDashboard();$('period-date').focus()};
+  const rm=document.createElement('button');rm.className='underline';rm.style.color='#795d68';rm.style.background='none';rm.type='button';rm.textContent='Elimina';
+  rm.onclick=()=>{state.cycle.splice(i,1);renderCycle();renderDashboard()};
+  a.append(ed,rm);row.append(t,a);h.append(row);
+ });
+ const r=$('cycle-result');r.replaceChildren();
+ if(e){const next=addDays(e.date,e.length),ov=addDays(next,-14);
+  [['Fase corrente stimata',p],['Prossime mestruazioni stimate',formatDate(next)],['Ovulazione indicativa',formatDate(ov)]].forEach(([l,v])=>{const line=document.createElement('p'),s=document.createElement('strong');s.textContent=l+': ';line.append(s,document.createTextNode(v));r.append(line)});
+ }else r.textContent='Inserisci una data per visualizzare le stime.';
+ $('phase-description').textContent=p?advice[p][3]:'I suggerimenti si adattano alla fase stimata quando inserisci una data.';
+ ['food','move','care'].forEach((k,i)=>$('advice-'+k).textContent=p?advice[p][i]:'Ascolta fame, energia e bisogno di riposo: non serve seguire regole rigide.');
+ save();
+}
+$('cycle-form').addEventListener('submit',ev=>{
+ ev.preventDefault();
+ const date=$('period-date').value,length=Number($('cycle-length').value),period=Number($('period-length').value);
+ if(!date||date>today()||length<15||length>60||period<1||period>12||period>length)return notify('Controlla la data e le durate inserite.');
+ state.cycle=state.cycle.filter(x=>x.date!==date);state.cycle.unshift({date,length,period});state.cycle.sort((a,b)=>b.date.localeCompare(a.date));
+ renderCycle();renderDashboard();notify('Data del ciclo salvata.');
+});
+$('checkin-form').addEventListener('submit',ev=>{
+ ev.preventDefault();
+ const it={date:today(),symptoms:$('symptoms').value.trim(),energy:$('energy').value,mood:$('mood').value,sleep:$('sleep').value,wellbeing:$('wellbeing').value};
+ state.checkins=state.checkins.filter(x=>x.date!==it.date);state.checkins.push(it);save();
+ $('checkin-result').textContent='Check-in di oggi registrato.';notify('Check-in aggiornato.');
 });
 
-  
+/* ALIMENTAZIONE */
+function totals(date){return state.foods.filter(f=>f.date===date).reduce((a,f)=>{nutrientKeys.forEach(k=>a[k]+=(f[k]||0));return a},{kcal:0,protein:0,carbs:0,fat:0,fiber:0})}
+const val=x=>x===null||x===undefined?'non disponibile':number(x);
+function renderFood(){
+ const date=$('food-date').value,t=totals(date),list=$('food-list');list.replaceChildren();
+ const tt=$('nutrition-totals');tt.replaceChildren();
+ [['Calorie',t.kcal,'kcal'],['Proteine',t.protein,'g'],['Carboidrati',t.carbs,'g'],['Grassi',t.fat,'g'],['Fibre',t.fiber,'g']].forEach(([l,v,u])=>{
+  const c=document.createElement('div');c.className='metric';const s=document.createElement('div');s.className='mini';s.textContent=l;const b=document.createElement('strong');b.textContent=`${number(v)} ${u}`;c.append(s,b);tt.append(c)});
+ const goal=state.goal;
+ $('calorie-fill').style.width=goal?Math.min(100,t.kcal/goal*100)+'%':'0%';
+ $('calorie-bar').setAttribute('aria-valuenow',goal?String(Math.min(100,Math.round(t.kcal/goal*100))):'0');
+ $('calorie-caption').textContent=goal?`${number(t.kcal)} kcal registrate · ${number(goal)} kcal come obiettivo orientativo stimato. Non è una prescrizione.`:'Calcola il fabbisogno per visualizzare una barra orientativa; il diario non impone un obiettivo calorico.';
+ const items=state.foods.filter(f=>f.date===date);
+ if(!items.length)list.textContent='Nessuna voce per questo giorno.';
+ items.forEach(f=>{
+  const row=document.createElement('div');row.className='row flex flex-wrap justify-between items-center gap-3';
+  const info=document.createElement('div');const title=document.createElement('strong');title.textContent=`${f.meal} · ${f.name}`;
+  const d=document.createElement('p');d.className='mini';
+  d.textContent=`${number(f.quantity)} ${f.unit} · ${val(f.kcal)} kcal · P ${val(f.protein)} · C ${val(f.carbs)} · G ${val(f.fat)} · fibre ${val(f.fiber)} g · ${f.source||'Dati manuali'}${f.barcode?' · '+f.barcode:''}`;
+  info.append(title,d);
+  const act=document.createElement('div');act.className='flex gap-2';
+  const ed=document.createElement('button');ed.className='soft';ed.textContent='Modifica';ed.type='button';
+  ed.onclick=()=>{state.editing=f.id;$('meal').value=f.meal;$('food-name').value=f.name;$('quantity').value=f.quantity;$('unit').value=f.unit;
+   nutrientKeys.forEach(k=>$(k+'100').value=f[k]===null?'':(f[k]*100/f.quantity).toFixed(2));
+   $('food-name').dataset.barcode=f.barcode||'';$('food-name').dataset.source=f.source||'Dati manuali';
+   previewPortion();$('food-cancel').classList.remove('hidden');$('food-name').focus()};
+  const del=document.createElement('button');del.className='lilac';del.textContent='Elimina';del.type='button';
+  del.onclick=()=>{state.foods=state.foods.filter(x=>x.id!==f.id);renderFood();renderDashboard()};
+  act.append(ed,del);row.append(info,act);list.append(row);
+ });
+ const w=$('week-summary');w.replaceChildren();
+ Array.from({length:7},(_,i)=>addDays(date,-i)).forEach(d=>{const p=document.createElement('p');p.className='row';p.textContent=`${formatDate(d)} · ${number(totals(d).kcal)} kcal registrate`;w.append(p)});
+ save();renderDashboard();
+}
+$('food-date').addEventListener('change',renderFood);
+function updateReferenceLabels(){const u=$('unit').value;$('reference-unit-kcal').textContent=u;document.querySelectorAll('.reference-unit').forEach(el=>el.textContent=u)}
+function previewPortion(){
+ updateReferenceLabels();const f=Number($('quantity').value||0)/100;
+ const v=nutrientKeys.map(k=>Number($(k+'100').value||0)*f);
+ $('food-integration-status').textContent=v.some(x=>x>0)?`Porzione calcolata: ${v[0].toFixed(1)} kcal · P ${v[1].toFixed(1)} g · C ${v[2].toFixed(1)} g · G ${v[3].toFixed(1)} g · fibre ${v[4].toFixed(1)} g. Origine: ${$('food-name').dataset.source||'dati manuali'}.`:'Inserisci quantità e valori per 100 g/100 ml. Origine: dati manuali.';
+}
+$('unit').addEventListener('change',previewPortion);
+['quantity',...nutrientKeys.map(k=>k+'100')].forEach(id=>$(id).addEventListener('input',previewPortion));
+function clearFoodForm(){state.editing=null;$('food-form').reset();$('food-name').dataset.barcode='';$('food-name').dataset.source='';$('food-cancel').classList.add('hidden');previewPortion()}
+$('food-form').addEventListener('submit',ev=>{
+ ev.preventDefault();
+ const f={id:state.editing||String(Date.now())+Math.random(),date:$('food-date').value,meal:$('meal').value,name:$('food-name').value.trim(),quantity:Number($('quantity').value),unit:$('unit').value,barcode:$('food-name').dataset.barcode||'',source:$('food-name').dataset.source||'Dati manuali'};
+ nutrientKeys.forEach(k=>{const raw=$(k+'100').value;f[k]=raw===''?null:Number(raw)*f.quantity/100});
+ if(!f.name||!Number.isFinite(f.quantity)||f.quantity<=0||nutrientKeys.some(k=>f[k]!==null&&(!Number.isFinite(f[k])||f[k]<0)))return notify('Controlla quantità e valori nutrizionali.');
+ if(state.editing)state.foods=state.foods.filter(x=>x.id!==state.editing);
+ state.foods.push(f);clearFoodForm();$('food-search-results').replaceChildren();renderFood();notify('Voce aggiunta al diario.');
+});
+$('food-cancel').onclick=clearFoodForm;
+
+/* OPEN FOOD FACTS */
+const okn=v=>v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v));
+const offVals=n=>({kcal:n['energy-kcal_100g'],protein:n.proteins_100g,carbs:n.carbohydrates_100g,fat:n.fat_100g,fiber:n.fiber_100g});
+function fillProduct(name,v,code){
+ $('food-name').value=name;nutrientKeys.forEach(k=>$(k+'100').value=okn(v[k])?v[k]:'');
+ $('food-name').dataset.barcode=code||'';$('food-name').dataset.source='Open Food Facts';
+ $('unit').value='g';if(!$('quantity').value)$('quantity').value=100;previewPortion();
+}
+async function searchBarcode(code){
+ const res=$('food-search-results');$('food-search').value=code;go('nutrition');
+ res.textContent=`Ricerca del codice ${code} in corso…`;
+ const ac=new AbortController(),t=setTimeout(()=>ac.abort(),10000);
+ try{
+  const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,product_name_it,brands,nutriments',{signal:ac.signal});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const d=await r.json();
+  if(d.status!==1||!d.product){res.textContent=`Nessun prodotto trovato per il codice ${code}. Compila i dati dall’etichetta.`;$('food-name').dataset.barcode=code;return}
+  const p=d.product,name=p.product_name_it||p.product_name||'Codice '+code;
+  fillProduct(name,offVals(p.nutriments||{}),code);
+  res.textContent=`${name} · Codice ${code} · Fonte: Open Food Facts. Indica i grammi e verifica i dati prima di salvare.`;
+ }catch(e){res.textContent=`Errore nella ricerca (${e.name==='AbortError'?'timeout':(e.message||'rete')}). Riprova o inserisci i dati a mano.`}
+ finally{clearTimeout(t)}
+}
+async function searchByName(q){
+ q=String(q||'').trim();const res=$('food-search-results');
+ if(/^\d{8,14}$/.test(q))return searchBarcode(q);
+ if(q.length<3){res.replaceChildren();return}
+ res.textContent='Ricerca su Open Food Facts…';
+ try{
+  const r=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=6&fields=product_name,product_name_it,brands,code,nutriments');
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const d=await r.json();res.replaceChildren();
+  const ps=(d.products||[]).filter(p=>p.product_name||p.product_name_it);
+  if(!ps.length){res.textContent='Nessun prodotto trovato. Prova un nome diverso o inserisci i dati manualmente.';return}
+  ps.forEach(p=>{
+   const name=p.product_name_it||p.product_name,v=offVals(p.nutriments||{});
+   const b=document.createElement('button');b.type='button';b.className='soft w-full text-left';
+   const s1=document.createElement('strong');s1.textContent=name;
+   const s2=document.createElement('span');s2.className='block mini';s2.textContent=`${p.brands||'Marca non disponibile'} · Codice ${p.code||'n.d.'}`;
+   const s3=document.createElement('span');s3.className='block mini';
+   s3.textContent=`Per 100 g: ${okn(v.kcal)?number(Number(v.kcal)):'n.d.'} kcal · P ${okn(v.protein)?number(Number(v.protein)):'n.d.'} · C ${okn(v.carbs)?number(Number(v.carbs)):'n.d.'} · G ${okn(v.fat)?number(Number(v.fat)):'n.d.'}`;
+   b.append(s1,s2,s3);
+   b.onclick=()=>{fillProduct(name,v,p.code);res.textContent='Prodotto trasferito nel modulo. Indica i grammi e verifica i dati prima di salvare.'};
+   res.append(b);
+  });
+ }catch(e){res.textContent='Ricerca non disponibile ('+(e.message||'rete')+'). Puoi inserire i dati manualmente.'}
+}
+$('food-search-button').addEventListener('click',()=>searchByName($('food-search').value));
+$('food-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchByName($('food-search').value)}});
+
+/* SCANNER */
+let ctl=null;
+function closeScanner(){
+ try{ctl&&ctl.stop()}catch(_){}ctl=null;
+ const v=$('scanner-video');if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}
+ $('scanner-modal').classList.add('hidden');
+}
+async function openScanner(){
+ const msg=$('scanner-message');$('scanner-modal').classList.remove('hidden');
+ if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg.textContent='Fotocamera non disponibile: servono HTTPS e un browser compatibile. Puoi cercare per nome o codice.';return}
+ if(!window.ZXingBrowser){msg.textContent='Lettore barcode non caricato. Ricarica la pagina.';return}
+ msg.textContent='Richiesta accesso alla fotocamera…';
+ try{
+  const reader=new ZXingBrowser.BrowserMultiFormatReader();let done=false;
+  ctl=await reader.decodeFromVideoDevice(undefined,$('scanner-video'),r=>{
+   if(!r||done)return;const c=String(r.getText()).trim();
+   if(!/^\d{8,14}$/.test(c))return;done=true;closeScanner();searchBarcode(c);
+  });
+  msg.textContent='Inquadra il codice a barre del prodotto.';
+ }catch(e){msg.textContent='Impossibile avviare la fotocamera ('+(e.name||'errore')+'). Controlla i permessi del browser o inserisci il codice a mano.'}
+}
+$('barcode-button').addEventListener('click',openScanner);
+$('scanner-close').addEventListener('click',closeScanner);
+window.addEventListener('pagehide',closeScanner);
+
+/* REPORT LOCALI */
+function renderReports(){
+ const el=$('reports-list');el.replaceChildren();
+ if(!state.records.length){el.textContent='Nessun report salvato.';return}
+ state.records.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,7).forEach(r=>{
+  const p=document.createElement('p');p.className='row';
+  p.textContent=`${formatDate(r.date)} · ${number(r.total_calories||0)} kcal · ${r.workout_completed?'Allenamento completato':'Nessun allenamento completato'}`;el.append(p)});
+}
+$('save-report').addEventListener('click',()=>{
+ const date=$('food-date').value,t=totals(date),c=state.checkins.find(x=>x.date===date);
+ const rec={date,total_calories:t.kcal,calorie_goal:state.goal||0,total_protein:t.protein,total_carbs:t.carbs,total_fat:t.fat,total_fiber:t.fiber,cycle_phase:phase()||'Non disponibile',checkin:c||null,workout_completed:state.sessions.some(s=>s.date===date),workout_name:state.sessions.filter(s=>s.date===date).map(s=>s.name).join(', ')};
+ state.records=state.records.filter(r=>r.date!==date);state.records.push(rec);save();renderReports();renderDashboard();
+ $('report-status').textContent='Report del '+formatDate(date)+' salvato su questo dispositivo.';
+});
+
+/* FABBISOGNO */
+$('needs-form').addEventListener('submit',ev=>{
+ ev.preventDefault();
+ const age=Number($('age').value),height=Number($('height').value),weight=Number($('weight').value),freq=Number($('frequency').value),factor=Number($('activity').value);
+ if(age<18||age>100||height<100||height>230||weight<30||weight>350||freq<0||freq>14)return notify('Controlla i valori inseriti.');
+ const bmr=10*weight+6.25*height-5*age-161,maintenance=Math.round(bmr*factor),obj=$('objective').value;
+ const goal=obj==='loss'?Math.max(Math.round(bmr),Math.round(maintenance*.9)):maintenance;state.goal=goal;
+ const pc=obj==='recomp'?[25,45,30]:[20,50,30];
+ const g=[Math.round(goal*pc[0]/100/4),Math.round(goal*pc[1]/100/4),Math.round(goal*pc[2]/100/9)];
+ const out=$('needs-result');out.replaceChildren();
+ [['Metabolismo basale stimato',`${Math.round(bmr)} kcal/giorno`],['Fabbisogno giornaliero stimato',`${maintenance} kcal/giorno`],['Obiettivo orientativo',`${goal} kcal/giorno`],['Proteine',`${pc[0]}% · circa ${g[0]} g`],['Carboidrati',`${pc[1]}% · circa ${g[1]} g`],['Grassi',`${pc[2]}% · circa ${g[2]} g`]].forEach(([l,v])=>{const p=document.createElement('p');p.className='row';p.textContent=`${l}: ${v}`;out.append(p)});
+ const n=document.createElement('p');n.className='mt-3';n.textContent='Formula Mifflin–St Jeor (variante femminile), moltiplicata per un fattore di attività. Per il dimagrimento si usa una riduzione orientativa del 10%, mai sotto il basale stimato. I risultati non sostituiscono una valutazione professionale.';out.append(n);
+ renderFood();notify('Stima ricalcolata.');
+});
+
+/* ALLENAMENTO */
+function renderWorkouts(){
+ const list=$('workout-list');list.replaceChildren();
+ const found=workouts.filter(w=>(!$('filter-level').value||w.level===$('filter-level').value)&&(!$('filter-duration').value||w.duration<=Number($('filter-duration').value))&&(!$('filter-equipment').value||w.equipment===$('filter-equipment').value)&&(!$('filter-place').value||w.place===$('filter-place').value));
+ if(!found.length)list.textContent='Nessuna scheda corrisponde ai filtri.';
+ found.forEach(w=>{
+  const card=document.createElement('article');card.className='surface p-5';
+  const h=document.createElement('h3');h.className='t2';h.textContent=w.name;
+  const m=document.createElement('p');m.className='mini mt-2';m.textContent=`${w.goal} · ${w.level} · ${w.duration} min · ${w.place} · ${w.equipment}`;
+  const ul=document.createElement('ul');ul.className='mt-4 space-y-2 mini';
+  w.exercises.forEach(x=>{const li=document.createElement('li');li.className='metric';li.textContent=x;ul.append(li)});
+  const lab=document.createElement('label');lab.className='flex items-center gap-3 mt-5 font-semibold';
+  const box=document.createElement('input');box.type='checkbox';box.className='w-5 h-5';box.style.accentColor='#648470';
+  box.checked=state.sessions.some(s=>s.date===today()&&s.name===w.name);
+  box.onchange=()=>{state.sessions=state.sessions.filter(s=>!(s.date===today()&&s.name===w.name));if(box.checked)state.sessions.push({date:today(),name:w.name});renderSessions();renderDashboard();notify(box.checked?'Allenamento segnato come completato.':'Completamento rimosso.')};
+  lab.append(box,document.createTextNode('Completato oggi'));card.append(h,m,ul,lab);list.append(card);
+ });
+}
+function renderSessions(){
+ const el=$('session-list');el.replaceChildren();
+ if(!state.sessions.length){el.textContent='Nessuna sessione completata.';save();return}
+ state.sessions.slice().reverse().forEach(s=>{const p=document.createElement('p');p.className='row';p.textContent=`${formatDate(s.date)} · ${s.name}`;el.append(p)});save();
+}
+document.querySelectorAll('[id^="filter-"]').forEach(el=>el.addEventListener('change',renderWorkouts));
+
+/* HOME E PROFILO */
+function renderDashboard(){
+ const p=phase();
+ $('home-phase').textContent=p?`Fase ${p.toLowerCase()} stimata. Esplora consigli flessibili nella sezione Ciclo.`:'Aggiungi il primo giorno del ciclo per vedere una fase indicativa.';
+ const t=totals(today());
+ $('home-food-summary').textContent=`${number(t.kcal)} kcal registrate oggi · ${state.foods.filter(f=>f.date===today()).length} voci.`;
+ $('home-activity').textContent=`${state.sessions.filter(s=>s.date===today()).length} allenamenti completati oggi.`;
+ $('profile-progress').textContent=`${state.cycle.length} date del ciclo · ${state.foods.length} voci alimentari · ${state.sessions.length} allenamenti completati · ${state.records.length} report salvati.`;
+}
+$('profile-form').addEventListener('submit',ev=>{ev.preventDefault();state.profile={name:$('display-name').value.trim(),preference:$('preference').value};save();notify('Preferenze aggiornate.')});
+$('export-session').onclick=()=>{
+ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='loto-lab-dati.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Esportazione dei tuoi dati avviata.');
+};
+$('clear-session').onclick=()=>{
+ if(!confirm('Vuoi cancellare tutti i dati salvati su questo dispositivo?'))return;
+ Object.assign(state,{foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],editing:null});
+ ['profile-form','cycle-form','checkin-form','needs-form','food-form'].forEach(id=>$(id).reset());
+ $('cycle-length').value=28;$('period-length').value=5;$('checkin-result').textContent='';
+ $('needs-result').textContent='Compila il modulo per vedere una stima orientativa.';
+ renderCycle();renderFood();renderWorkouts();renderSessions();renderReports();notify('Tutti i dati sono stati cancellati da questo dispositivo.');
+};
+
+/* PREMIUM */
+function premiumText(){return `Ciao, sono ${$('pn').value.trim()||'una futura cliente'}. Vorrei un percorso personalizzato LOTO LAB. ${$('pm').value.trim()}`}
+$('whatsapp-button').onclick=()=>window.open('https://wa.me/'+CONTATTO.whatsapp+'?text='+encodeURIComponent(premiumText()),'_blank','noopener');
+$('email-button').onclick=()=>{location.href='mailto:'+CONTATTO.email+'?subject='+encodeURIComponent('Percorso personalizzato LOTO LAB')+'&body='+encodeURIComponent(premiumText())};
+
+/* AVVIO */
+if(state.profile&&state.profile.name)$('display-name').value=state.profile.name;
+renderCycle();renderFood();renderWorkouts();renderSessions();renderReports();previewPortion();
+if(window.lucide)lucide.createIcons();
+const urlCode=(new URLSearchParams(location.search).get('barcode')||'').trim();
+if(/^\d{8,14}$/.test(urlCode))searchBarcode(urlCode);
 </script>
-</body>
-</html>
+</body></html>
