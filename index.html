@@ -467,24 +467,20 @@ async function searchByName(q){
  if(/^\d{8,14}$/.test(q))return searchBarcode(q);
  if(q.length<3){res.replaceChildren();return}
  res.textContent='Ricerca su Open Food Facts…';
+ const txt=v=>Array.isArray(v)?v.join(', '):(v&&typeof v==='object'?String(v.it||v.main||Object.values(v)[0]||''):String(v||''));
  try{
-  const r=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=6&fields=product_name,product_name_it,brands,code,nutriments');
+  const r=await fetch('https://search.openfoodfacts.org/search?q='+encodeURIComponent(q)+'&page_size=8&fields=code,product_name,brands');
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();res.replaceChildren();
-  const ps=(d.products||[]).filter(p=>p.product_name||p.product_name_it);
+  const ps=(d.hits||d.products||[]).filter(p=>p.code&&txt(p.product_name));
   if(!ps.length){res.textContent='Nessun prodotto trovato. Prova un nome diverso o inserisci i dati manualmente.';return}
   ps.forEach(p=>{
-   const name=p.product_name_it||p.product_name,v=offVals(p.nutriments||{});
    const b=document.createElement('button');b.type='button';b.className='soft w-full text-left';
-   const s1=document.createElement('strong');s1.textContent=name;
-   const s2=document.createElement('span');s2.className='block mini';s2.textContent=`${p.brands||'Marca non disponibile'} · Codice ${p.code||'n.d.'}`;
-   const s3=document.createElement('span');s3.className='block mini';
-   s3.textContent=`Per 100 g: ${okn(v.kcal)?number(Number(v.kcal)):'n.d.'} kcal · P ${okn(v.protein)?number(Number(v.protein)):'n.d.'} · C ${okn(v.carbs)?number(Number(v.carbs)):'n.d.'} · G ${okn(v.fat)?number(Number(v.fat)):'n.d.'}`;
-   b.append(s1,s2,s3);
-   b.onclick=()=>{fillProduct(name,v,p.code);res.textContent='Prodotto trasferito nel modulo. Indica i grammi e verifica i dati prima di salvare.'};
-   res.append(b);
+   const s1=document.createElement('strong');s1.textContent=txt(p.product_name);
+   const s2=document.createElement('span');s2.className='block mini';s2.textContent=`${txt(p.brands)||'Marca non disponibile'} · Codice ${p.code}`;
+   b.append(s1,s2);b.onclick=()=>searchBarcode(String(p.code));res.append(b);
   });
- }catch(e){res.textContent='Ricerca non disponibile ('+(e.message||'rete')+'). Puoi inserire i dati manualmente.'}
+ }catch(e){res.textContent='Ricerca non disponibile ('+(e.message||'rete')+'). Puoi cercare con il codice a barre o inserire i dati manualmente.'}
 }
 $('food-search-button').addEventListener('click',()=>searchByName($('food-search').value));
 $('food-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchByName($('food-search').value)}});
