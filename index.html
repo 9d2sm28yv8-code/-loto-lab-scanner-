@@ -38,6 +38,7 @@ button:disabled{opacity:.55;cursor:wait}
 .view{animation:rise .32s ease both}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))}
 @media(max-width:380px){.nav-btn{font-size:9px}.nav-btn svg{width:17px}}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:45;background:#494747;color:#fff;border-radius:14px;padding:12px 16px;font-size:14px;max-width:90vw;box-shadow:0 8px 24px #0003}
 </style>
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
@@ -160,7 +161,7 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
     <div class="grid grid-cols-2 gap-3">
      <div><label for="quantity" class="field-label">Quantità</label><input id="quantity" class="field" type="number" min="0.1" step="any" required></div>
      <div><label for="unit" class="field-label">Unità</label><select id="unit" class="field"><option>g</option><option>ml</option></select></div>
-     <div><label for="kcal100" class="field-label">Calorie per 100 <span id="reference-unit-kcal">g</span></label><input id="kcal100" class="field" type="number" min="0" step="any" required></div>
+     <div><label for="kcal100" class="field-label">Calorie per 100 <span id="reference-unit-kcal">g</span></label><input id="kcal100" class="field" type="number" min="0" step="any"></div>
      <div><label for="protein100" class="field-label">Proteine per 100 <span class="reference-unit">g</span> (g)</label><input id="protein100" class="field" type="number" min="0" step="any"></div>
      <div><label for="carbs100" class="field-label">Carboidrati per 100 <span class="reference-unit">g</span> (g)</label><input id="carbs100" class="field" type="number" min="0" step="any"></div>
      <div><label for="fat100" class="field-label">Grassi per 100 <span class="reference-unit">g</span> (g)</label><input id="fat100" class="field" type="number" min="0" step="any"></div>
@@ -286,6 +287,7 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
 </main>
 </div>
 
+<div id="toast" role="status" aria-live="polite" class="hidden"></div>
 <div id="scanner-modal" class="fixed inset-0 z-50 hidden p-5" style="background:#494747cc" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
  <div class="surface mx-auto mt-8 max-w-lg p-5">
   <div class="flex items-start justify-between gap-3">
@@ -330,7 +332,8 @@ const advice={
  Ovulatoria:['Mantieni pasti completi e flessibili; includi fibre e liquidi senza imporre regole rigide.','Puoi scegliere forza o movimento dinamico, adattando carico e recupero.','Ritaglia pause e ascolta eventuali segnali di affaticamento.','Intorno all’ovulazione alcune persone percepiscono energia diversa; la data resta una stima.'],
  Luteale:['L’appetito può variare: pianifica spuntini soddisfacenti e pasti con proteine, carboidrati, grassi e fibre.','Adatta pesi, mobilità o yoga all’energia del giorno e prevedi recupero.','Prova respirazione, rilassamento e una routine serale riposante.','Nella fase luteale fame, sonno ed energia possono cambiare in modi differenti.']
 };
-function notify(m){$('notice').textContent=m;$('notice').classList.remove('hidden')}
+let toastTimer;
+function notify(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add('hidden'),4500)}
 function go(id){
  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==id);
  const parent=({needs:'nutrition',premium:'profile',services:'profile',admin:'profile'})[id]||id;
@@ -435,7 +438,7 @@ $('food-form').addEventListener('submit',ev=>{
  nutrientKeys.forEach(k=>{const raw=$(k+'100').value;f[k]=raw===''?null:Number(raw)*f.quantity/100});
  if(!f.name||!Number.isFinite(f.quantity)||f.quantity<=0||nutrientKeys.some(k=>f[k]!==null&&(!Number.isFinite(f[k])||f[k]<0)))return notify('Controlla quantità e valori nutrizionali.');
  if(state.editing)state.foods=state.foods.filter(x=>x.id!==state.editing);
- state.foods.push(f);clearFoodForm();$('food-search-results').replaceChildren();renderFood();notify('Voce aggiunta al diario.');
+ state.foods.push(f);clearFoodForm();$('food-search-results').replaceChildren();renderFood();notify('Voce aggiunta al diario ✓');$('food-list').scrollIntoView({behavior:'smooth',block:'center'});
 });
 $('food-cancel').onclick=clearFoodForm;
 
