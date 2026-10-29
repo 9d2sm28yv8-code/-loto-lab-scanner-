@@ -315,7 +315,7 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 const formatDate=s=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(s+'T12:00:00Z'));
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 const number=n=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:1}).format(n);
-const state={foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],editing:null};
+const state={foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],products:{},editing:null};
 try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)Object.assign(state,r,{editing:null})}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 const nutrientKeys=['kcal','protein','carbs','fat','fiber'];
@@ -438,6 +438,7 @@ $('food-form').addEventListener('submit',ev=>{
  nutrientKeys.forEach(k=>{const raw=$(k+'100').value;f[k]=raw===''?null:Number(raw)*f.quantity/100});
  if(!f.name||!Number.isFinite(f.quantity)||f.quantity<=0||nutrientKeys.some(k=>f[k]!==null&&(!Number.isFinite(f[k])||f[k]<0)))return notify('Controlla quantità e valori nutrizionali.');
  if(state.editing)state.foods=state.foods.filter(x=>x.id!==state.editing);
+ {const pv={};nutrientKeys.forEach(k=>{const raw=$(k+'100').value;pv[k]=raw===''?null:Number(raw)});cacheProduct(f.barcode,f.name,pv,f.source)}
  state.foods.push(f);clearFoodForm();$('food-search-results').replaceChildren();renderFood();notify('Voce aggiunta al diario ✓');$('food-list').scrollIntoView({behavior:'smooth',block:'center'});
 });
 $('food-cancel').onclick=clearFoodForm;
@@ -445,45 +446,63 @@ $('food-cancel').onclick=clearFoodForm;
 /* OPEN FOOD FACTS */
 const okn=v=>v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v));
 const offVals=n=>({kcal:n['energy-kcal_100g'],protein:n.proteins_100g,carbs:n.carbohydrates_100g,fat:n.fat_100g,fiber:n.fiber_100g});
-function fillProduct(name,v,code){
+function fillProduct(name,v,code,src){
  $('food-name').value=name;nutrientKeys.forEach(k=>$(k+'100').value=okn(v[k])?v[k]:'');
- $('food-name').dataset.barcode=code||'';$('food-name').dataset.source='Open Food Facts';
+ $('food-name').dataset.barcode=code||'';$('food-name').dataset.source=src||'Open Food Facts';
  $('unit').value='g';if(!$('quantity').value)$('quantity').value=100;previewPortion();
 }
+function cacheProduct(code,name,v,source){
+ const key=code||'m:'+name.toLowerCase();
+ const clean={};nutrientKeys.forEach(k=>clean[k]=okn(v[k])?Number(v[k]):null);
+ state.products[key]={name,code:code||'',v:clean,source,ts:Date.now()};
+ const keys=Object.keys(state.products);
+ if(keys.length>300)keys.sort((a,b)=>state.products[a].ts-state.products[b].ts).slice(0,keys.length-300).forEach(k=>delete state.products[k]);
+ save();
+}
+function addResult(res,title,sub,fn){
+ const b=document.createElement('button');b.type='button';b.className='soft w-full text-left';
+ const s1=document.createElement('strong');s1.textContent=title;
+ const s2=document.createElement('span');s2.className='block mini';s2.textContent=sub;
+ b.append(s1,s2);b.onclick=fn;res.append(b);
+}
+const OFF_DOWN='Open Food Facts non risponde (servizio sovraccarico o non disponibile). Riprova più tardi, oppure inserisci i dati a mano: i prodotti già usati restano disponibili.';
 async function searchBarcode(code){
  const res=$('food-search-results');$('food-search').value=code;go('nutrition');
+ const c=state.products[code];
+ if(c){fillProduct(c.name,c.v,code,c.source);res.textContent=`${c.name} · Codice ${code} · dal tuo archivio (${c.source}). Indica i grammi e verifica i dati.`;return}
  res.textContent=`Ricerca del codice ${code} in corso…`;
  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),10000);
  try{
   const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,product_name_it,brands,nutriments',{signal:ac.signal});
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
-  if(d.status!==1||!d.product){res.textContent=`Nessun prodotto trovato per il codice ${code}. Compila i dati dall’etichetta.`;$('food-name').dataset.barcode=code;return}
-  const p=d.product,name=p.product_name_it||p.product_name||'Codice '+code;
-  fillProduct(name,offVals(p.nutriments||{}),code);
+  if(d.status!==1||!d.product){res.textContent=`Nessun prodotto trovato per il codice ${code}. Compila i dati dall’etichetta: la prossima volta lo ritroverai.`;$('food-name').dataset.barcode=code;return}
+  const p=d.product,name=p.product_name_it||p.product_name||'Codice '+code,v=offVals(p.nutriments||{});
+  fillProduct(name,v,code);cacheProduct(code,name,v,'Open Food Facts');
   res.textContent=`${name} · Codice ${code} · Fonte: Open Food Facts. Indica i grammi e verifica i dati prima di salvare.`;
- }catch(e){res.textContent=`Errore nella ricerca (${e.name==='AbortError'?'timeout':(e.message||'rete')}). Riprova o inserisci i dati a mano.`}
+ }catch(e){res.textContent=OFF_DOWN+' ['+(e.name==='AbortError'?'timeout':(e.message||'rete'))+']';$('food-name').dataset.barcode=code}
  finally{clearTimeout(t)}
 }
 async function searchByName(q){
  q=String(q||'').trim();const res=$('food-search-results');
  if(/^\d{8,14}$/.test(q))return searchBarcode(q);
- if(q.length<3){res.replaceChildren();return}
- res.textContent='Ricerca su Open Food Facts…';
+ res.replaceChildren();if(q.length<3)return;
+ const ql=q.toLowerCase();
+ const loc=Object.values(state.products).filter(p=>p.name.toLowerCase().includes(ql)).sort((a,b)=>b.ts-a.ts).slice(0,5);
+ if(loc.length){
+  const h=document.createElement('p');h.className='mini';h.textContent='Già usati da te:';res.append(h);
+  loc.forEach(p=>addResult(res,p.name,`${p.source}${p.code?' · Codice '+p.code:''} · salvato su questo dispositivo`,()=>{fillProduct(p.name,p.v,p.code,p.source);res.textContent='Prodotto trasferito nel modulo. Indica i grammi e verifica i dati prima di salvare.'}));
+ }
+ const st=document.createElement('p');st.className='mini';st.textContent='Ricerca su Open Food Facts…';res.append(st);
  const txt=v=>Array.isArray(v)?v.join(', '):(v&&typeof v==='object'?String(v.it||v.main||Object.values(v)[0]||''):String(v||''));
  try{
   const r=await fetch('https://search.openfoodfacts.org/search?q='+encodeURIComponent(q)+'&page_size=8&fields=code,product_name,brands');
   if(!r.ok)throw new Error('HTTP '+r.status);
-  const d=await r.json();res.replaceChildren();
+  const d=await r.json();
   const ps=(d.hits||d.products||[]).filter(p=>p.code&&txt(p.product_name));
-  if(!ps.length){res.textContent='Nessun prodotto trovato. Prova un nome diverso o inserisci i dati manualmente.';return}
-  ps.forEach(p=>{
-   const b=document.createElement('button');b.type='button';b.className='soft w-full text-left';
-   const s1=document.createElement('strong');s1.textContent=txt(p.product_name);
-   const s2=document.createElement('span');s2.className='block mini';s2.textContent=`${txt(p.brands)||'Marca non disponibile'} · Codice ${p.code}`;
-   b.append(s1,s2);b.onclick=()=>searchBarcode(String(p.code));res.append(b);
-  });
- }catch(e){res.textContent='Ricerca non disponibile ('+(e.message||'rete')+'). Puoi cercare con il codice a barre o inserire i dati manualmente.'}
+  st.textContent=ps.length?'Da Open Food Facts:':'Nessun prodotto trovato online. Prova un nome diverso o inserisci i dati manualmente.';
+  ps.forEach(p=>addResult(res,txt(p.product_name),`${txt(p.brands)||'Marca non disponibile'} · Codice ${p.code}`,()=>searchBarcode(String(p.code))));
+ }catch(e){st.textContent=OFF_DOWN}
 }
 $('food-search-button').addEventListener('click',()=>searchByName($('food-search').value));
 $('food-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchByName($('food-search').value)}});
@@ -584,7 +603,7 @@ $('export-session').onclick=()=>{
 };
 $('clear-session').onclick=()=>{
  if(!confirm('Vuoi cancellare tutti i dati salvati su questo dispositivo?'))return;
- Object.assign(state,{foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],editing:null});
+ Object.assign(state,{foods:[],cycle:[],checkins:[],sessions:[],profile:{},goal:null,records:[],products:{},editing:null});
  ['profile-form','cycle-form','checkin-form','needs-form','food-form'].forEach(id=>$(id).reset());
  $('cycle-length').value=28;$('period-length').value=5;$('checkin-result').textContent='';
  $('needs-result').textContent='Compila il modulo per vedere una stima orientativa.';
