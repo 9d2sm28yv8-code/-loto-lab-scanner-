@@ -249,7 +249,7 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
  <div class="surface p-6 md:p-10" style="background:linear-gradient(130deg,#eee3f0,#fffaf4)">
   <span class="chip">LOTO LAB</span>
   <h2 class="t1 mt-4">Il tuo percorso personalizzato</h2>
-  <p class="mt-3" style="color:#665d65">Ogni donna è diversa. Il tuo percorso dovrebbe esserlo altrettanto.</p>
+  <p class="mt-3" style="color:#665d65">Ogni donna è unica. Il tuo percorso dovrebbe esserlo altrettanto.</p>
  </div>
  <div class="grid md:grid-cols-2 gap-5">
   <div class="surface p-6">
@@ -265,7 +265,7 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
   <div class="surface p-6">
    <h3 class="t2">Cosa comprende il percorso</h3>
    <p class="mt-3 sub">Movimento, nutrizione, ciclo e supporto: scopri come possono dialogare nel rispetto delle tue esigenze.</p>
-   <button data-go="services" class="soft mt-5" type="button">Scopri i percorsi LOTO LAB</button>
+   <button id="percorsi-button" class="soft mt-5" type="button">Scopri i percorsi LOTO LAB</button>
   </div>
  </div>
 </section>
@@ -315,6 +315,7 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
 <script>
 const $=id=>document.getElementById(id);
 const KEY="lotolab_v2";
+const PERCORSI_URL="https://lotolab.my.canva.site/percorsi"; // indirizzo della pagina dei percorsi sul sito Loto Lab (vuoto = mostra la pagina interna)
 const CONTATTO={email:"info.lotolab@gmail.com",whatsapp:"393791467475"};
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const formatDate=s=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(s+'T12:00:00Z'));
@@ -636,6 +637,8 @@ $('clear-session').onclick=()=>{
 function premiumText(){return `Ciao, sono ${$('pn').value.trim()||'una futura cliente'}. Vorrei un percorso personalizzato LOTO LAB. ${$('pm').value.trim()}`}
 $('whatsapp-button').onclick=()=>window.open('https://wa.me/'+CONTATTO.whatsapp+'?text='+encodeURIComponent(premiumText()),'_blank','noopener');
 $('email-button').onclick=()=>{location.href='mailto:'+CONTATTO.email+'?subject='+encodeURIComponent('Percorso personalizzato LOTO LAB')+'&body='+encodeURIComponent(premiumText())};
+
+$('percorsi-button').onclick=()=>PERCORSI_URL?window.open(PERCORSI_URL,'_blank','noopener'):go('services');
 
 /* AVVIO */
 if(state.profile&&state.profile.name)$('display-name').value=state.profile.name;
