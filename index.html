@@ -65,7 +65,6 @@ header,main{padding-left:calc(20px + env(safe-area-inset-left));padding-right:ca
 
 <section id="home" class="view space-y-5">
  <div class="surface p-6 md:p-9 relative overflow-hidden" style="background:linear-gradient(125deg,#f4eaf4,#fffaf5)">
-  <div class="absolute right-6 top-4 text-6xl opacity-30" aria-hidden="true">✿</div>
   <h2 class="t1 relative">Benvenuta in LOTO LAB 🌸</h2>
   <p class="mt-3 relative max-w-lg" style="color:#665d65">Il tuo benessere è un percorso, non una destinazione.</p>
  </div>
@@ -457,6 +456,7 @@ function fillProduct(name,v,code,src){
  $('food-name').dataset.barcode=code||'';$('food-name').dataset.source=src||'Open Food Facts';
  $('unit').value='g';if(!$('quantity').value)$('quantity').value=100;previewPortion();
 }
+const fetchT=(url,ms)=>Promise.race([fetch(url),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms||10000))]);
 function cacheProduct(code,name,v,source){
  const key=code||'m:'+name.toLowerCase();
  const clean={};nutrientKeys.forEach(k=>clean[k]=okn(v[k])?Number(v[k]):null);
@@ -477,9 +477,8 @@ async function searchBarcode(code){
  const c=state.products[code];
  if(c){fillProduct(c.name,c.v,code,c.source);res.textContent=`${c.name} · Codice ${code} · dal tuo archivio (${c.source}). Indica i grammi e verifica i dati.`;return}
  res.textContent=`Ricerca del codice ${code} in corso…`;
- const ac=new AbortController(),t=setTimeout(()=>ac.abort(),10000);
  try{
-  const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,product_name_it,brands,nutriments',{signal:ac.signal});
+  const r=await fetchT('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,product_name_it,brands,nutriments',10000);
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
   if(d.status!==1||!d.product){res.textContent=`Nessun prodotto trovato per il codice ${code}. Compila i dati dall’etichetta: la prossima volta lo ritroverai.`;$('food-name').dataset.barcode=code;return}
@@ -487,7 +486,28 @@ async function searchBarcode(code){
   fillProduct(name,v,code);cacheProduct(code,name,v,'Open Food Facts');
   res.textContent=`${name} · Codice ${code} · Fonte: Open Food Facts. Indica i grammi e verifica i dati prima di salvare.`;
  }catch(e){res.textContent=OFF_DOWN+' ['+(e.name==='AbortError'?'timeout':(e.message||'rete'))+']';$('food-name').dataset.barcode=code}
- finally{clearTimeout(t)}
+}
+const offTxt=v=>Array.isArray(v)?v.join(', '):(v&&typeof v==='object'?String(v.it||v.main||Object.values(v)[0]||''):String(v||''));
+async function offSearch(q){
+ const enc=encodeURIComponent(q),reasons=[];
+ const norm=(code,name,brands)=>({code:String(code||''),name:offTxt(name),brands:offTxt(brands)});
+ const tries=[
+  ['A','https://search.openfoodfacts.org/search?q='+enc+'&page_size=8',d=>(d.hits||[]).map(p=>norm(p.code,p.product_name,p.brands))],
+  ['B','https://world.openfoodfacts.org/cgi/search.pl?search_terms='+enc+'&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,product_name_it,brands',d=>(d.products||[]).map(p=>norm(p.code,p.product_name_it||p.product_name,p.brands))]
+ ];
+ for(const [id,url,pick] of tries){
+  try{
+   const r=await fetchT(url,9000);
+   if(!r.ok)throw new Error('HTTP '+r.status);
+   const d=await r.json();
+   if(d.errors&&d.errors.length)throw new Error('errore del servizio');
+   const list=pick(d).filter(x=>x.code&&x.name);
+   if(list.length)return list;
+   reasons.push(id+': nessun risultato');
+  }catch(e){reasons.push(id+': '+(e.name==='AbortError'?'timeout':(e.message||'rete')))}
+ }
+ if(reasons.every(x=>x.endsWith('nessun risultato')))return [];
+ const err=new Error(reasons.join(' · '));throw err;
 }
 async function searchByName(q){
  q=String(q||'').trim();const res=$('food-search-results');
@@ -500,15 +520,11 @@ async function searchByName(q){
   loc.forEach(p=>addResult(res,p.name,`${p.source}${p.code?' · Codice '+p.code:''} · salvato su questo dispositivo`,()=>{fillProduct(p.name,p.v,p.code,p.source);res.textContent='Prodotto trasferito nel modulo. Indica i grammi e verifica i dati prima di salvare.'}));
  }
  const st=document.createElement('p');st.className='mini';st.textContent='Ricerca su Open Food Facts…';res.append(st);
- const txt=v=>Array.isArray(v)?v.join(', '):(v&&typeof v==='object'?String(v.it||v.main||Object.values(v)[0]||''):String(v||''));
  try{
-  const r=await fetch('https://search.openfoodfacts.org/search?q='+encodeURIComponent(q)+'&page_size=8&fields=code,product_name,brands');
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  const d=await r.json();
-  const ps=(d.hits||d.products||[]).filter(p=>p.code&&txt(p.product_name));
+  const ps=await offSearch(q);
   st.textContent=ps.length?'Da Open Food Facts:':'Nessun prodotto trovato online. Prova un nome diverso o inserisci i dati manualmente.';
-  ps.forEach(p=>addResult(res,txt(p.product_name),`${txt(p.brands)||'Marca non disponibile'} · Codice ${p.code}`,()=>searchBarcode(String(p.code))));
- }catch(e){st.textContent=OFF_DOWN}
+  ps.forEach(p=>addResult(res,p.name,`${p.brands||'Marca non disponibile'} · Codice ${p.code}`,()=>searchBarcode(p.code)));
+ }catch(e){st.textContent='La ricerca per nome non è riuscita ['+(e.message||'rete')+']. Puoi cercare con il codice a barre o inserire i dati a mano.'}
 }
 $('food-search-button').addEventListener('click',()=>searchByName($('food-search').value));
 $('food-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchByName($('food-search').value)}});
